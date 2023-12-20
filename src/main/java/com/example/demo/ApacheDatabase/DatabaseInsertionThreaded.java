@@ -1,5 +1,4 @@
 package com.example.demo.ApacheDatabase;
-import com.example.demo.ExcelSheetReader.ExcelReader;
 import com.example.demo.Model.Employee;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.jfree.chart.ChartFactory;
@@ -14,9 +13,11 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-public class ApacheDatabase {
+public class DatabaseInsertionThreaded {
 
     private static final String JDBC_URL = "jdbc:mysql://localhost:3306/GRADPROGRAM";
     private static final String USER = "root";
@@ -35,27 +36,46 @@ public class ApacheDatabase {
 
     public static void Insertion(List<Employee> Employees) {
         // Insert data into the database using parallel streams
-        for (Employee employee : Employees) {
-            ApacheDatabase.insertEmployee(employee);
+//        for (Employee employee : Employees) {
+//            ApacheDatabase.insertEmployee(employee);
+//        }
+
+        int threadPoolSize = 5;
+        
+        ExecutorService executorService = Executors.newFixedThreadPool(threadPoolSize);
+
+        int chunkSize = Employees.size() / threadPoolSize;
+
+        for (int i = 0; i < threadPoolSize; i++) {
+            int startIndex = i * chunkSize;
+            int endIndex = (i == threadPoolSize - 1) ? Employees.size() : (i + 1) * chunkSize;
+
+            List<Employee> chunk = Employees.subList(startIndex, endIndex);
+
+            executorService.submit(() -> DatabaseInsertionThreaded.insertEmployee(chunk));
         }
+
+        executorService.shutdown();
     }
 
-    private static void insertEmployee(Employee employee) {
+    private static void insertEmployee(List<Employee> employees) {
         String sql = "INSERT INTO employees (Idate, Imonth,team,PanelName,round,skill,Itime,Currentlocation,Preferredlocation,Candidatename) VALUES (?,?,?,?,?,?,?,?,?,?)";
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setDate(1, employee.getDate());
-            statement.setDate(2, employee.getMonth());
-            statement.setString(3, employee.getTeam());
-            statement.setString(4, employee.getPanelName());
-            statement.setString(5, employee.getRound());
-            statement.setString(6, employee.getSkill());
-            statement.setTime(7, employee.getTime());
-            statement.setString(8, employee.getCurrentLoc());
-            statement.setString(9, employee.getPreferredLoc());
-            statement.setString(10, employee.getCandidateName());
-            int rowsAffected = statement.executeUpdate();
+            for(Employee employee : employees) {
+                statement.setDate(1, employee.getDate());
+                statement.setDate(2, employee.getMonth());
+                statement.setString(3, employee.getTeam());
+                statement.setString(4, employee.getPanelName());
+                statement.setString(5, employee.getRound());
+                statement.setString(6, employee.getSkill());
+                statement.setTime(7, employee.getTime());
+                statement.setString(8, employee.getCurrentLoc());
+                statement.setString(9, employee.getPreferredLoc());
+                statement.setString(10, employee.getCandidateName());
 
+                int rowsAffected = statement.executeUpdate();
+            }
 //            if (rowsAffected > 0) {
 //                System.out.println("Employee inserted successfully!");
 //            } else {

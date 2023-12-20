@@ -12,7 +12,7 @@ import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.*;
 
 
-public class ExcelReader {
+public class ExcelParser {
     static public List<Employee> getEmployeeList() {
         List<Employee> Employees = new ArrayList<>();
         try (FileInputStream file = new FileInputStream("C:\\Users\\simran.ali\\Downloads\\gradprogram.xlsx")) {
